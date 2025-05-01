@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../bloc/chat_bloc.dart';
 
-
 class ChatScreen extends StatefulWidget {
   const ChatScreen({super.key});
 
@@ -13,6 +12,12 @@ class ChatScreen extends StatefulWidget {
 
 class _ChatScreenState extends State<ChatScreen> {
   final TextEditingController _controller = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    context.read<ChatBloc>().add(LoadMessagesEvent()); // Load from Hive initially
+  }
 
   void _send() {
     final text = _controller.text.trim();
@@ -28,6 +33,7 @@ class _ChatScreenState extends State<ChatScreen> {
       appBar: AppBar(
         title: const Text('AI Assistant'),
         centerTitle: true,
+        backgroundColor: Colors.white,
       ),
       body: Column(
         children: [
@@ -48,28 +54,43 @@ class _ChatScreenState extends State<ChatScreen> {
               },
             ),
           ),
-          Padding(
-            padding: const EdgeInsets.all(8),
-            child: Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: _controller,
-                    decoration: const InputDecoration(
-                      hintText: 'Ask something...',
-                      border: OutlineInputBorder(),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                IconButton(
-                  onPressed: _send,
-                  icon: const Icon(Icons.send),
-                  color: Colors.deepOrange,
-                ),
-              ],
+         Padding(
+  padding: const EdgeInsets.all(12),
+  child: Container(
+    decoration: BoxDecoration(
+      color: Colors.grey[100],
+      borderRadius: BorderRadius.circular(28),
+      boxShadow: [
+        BoxShadow(
+          color: Colors.black.withOpacity(0.05),
+          blurRadius: 6,
+          offset: const Offset(0, 2),
+        ),
+      ],
+    ),
+    child: Row(
+      children: [
+        const SizedBox(width: 16),
+        Expanded(
+          child: TextField(
+            controller: _controller,
+            decoration: const InputDecoration(
+              hintText: 'Ask something...',
+              border: InputBorder.none,
             ),
           ),
+        ),
+        IconButton(
+          onPressed: _send,
+          icon: const Icon(Icons.send_rounded),
+          color: Colors.deepOrange,
+          splashRadius: 24,
+        ),
+      ],
+    ),
+  ),
+)
+
         ],
       ),
     );

@@ -1,6 +1,9 @@
+import 'package:ai_assistant/data/repositories/chat_message.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:hive/hive.dart';
+import 'package:path_provider/path_provider.dart';
 import 'core/di/locator.dart';
 import 'presentation/bloc/chat_bloc.dart';
 import 'presentation/screens/chat_screen.dart';
@@ -10,6 +13,10 @@ void main() async {
   await dotenv.load();
 
   await setupLocator();
+    final appDocumentDir = await getApplicationDocumentsDirectory();
+  Hive.init(appDocumentDir.path);
+  Hive.registerAdapter(ChatMessageAdapter());
+  await Hive.openBox<ChatMessage>('chatBox');
  
   runApp(const MyApp());
 }
