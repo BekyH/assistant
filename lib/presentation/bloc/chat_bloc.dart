@@ -1,4 +1,5 @@
-import 'package:ai_assistant/data/repositories/chat_message.dart';
+// lib/bloc/chat/chat_bloc.dart
+import 'package:ai_assistant/core/enums/ai_model.dart';
 import 'package:ai_assistant/domain/chat_repository.dart';
 import 'package:bloc/bloc.dart';
 import 'package:equatable/equatable.dart';
@@ -11,37 +12,41 @@ part 'chat_state.dart';
 class ChatBloc extends Bloc<ChatEvent, ChatState> {
   final ChatRepository _chatRepository = locator<ChatRepository>();
   List<Map<String, String>> messages = [];
+  AiModel currentModel = AiModel.gemini; // Default model
 
-  ChatBloc() : super(ChatInitial(messages: const [])) {
+  ChatBloc() : super(ChatInitial(messages: const [], model: AiModel.gemini)) {
     on<LoadMessagesEvent>((event, emit) async {
-      final Box<ChatMessage> chatBox = Hive.box<ChatMessage>('chatBox');
-      messages = chatBox.values
-          .map((msg) => {"role": msg.role, "content": msg.content})
-          .toList();
-
-      emit(ChatInitial(messages: List.from(messages)));
+      messages = await _chatRepository.getMessages();
+      emit(ChatInitial(messages: List.from(messages), model: currentModel));
     });
 
     on<SendMessageEvent>((event, emit) async {
-      final Box<ChatMessage> chatBox = Hive.box<ChatMessage>('chatBox');
-
       // Add user message
       messages.add({"role": "user", "content": event.userMessage});
-      await chatBox.add(ChatMessage(role: 'user', content: event.userMessage));
-      emit(ChatLoading(messages: List.from(messages)));
+      await _chatRepository.saveMessage('user', event.userMessage);
+      emit(ChatLoading(messages: List.from(messages), model: currentModel));
 
       try {
-        // Send only user message
-        final aiReply = await _chatRepository.sendMessage(event.userMessage);
+        // Send message with current model
+        final aiReply = await _chatRepository.sendMessage(event.userMessage, currentModel);
 
         // Add AI response
         messages.add({"role": "assistant", "content": aiReply});
-        await chatBox.add(ChatMessage(role: 'assistant', content: aiReply));
+        await _chatRepository.saveMessage('assistant', aiReply);
 
-        emit(ChatSuccess(messages: List.from(messages)));
+        emit(ChatSuccess(messages: List.from(messages), model: currentModel));
       } catch (e) {
-        emit(ChatError(errorMessage: e.toString(), messages: List.from(messages)));
+        emit(ChatError(
+          errorMessage: e.toString(),
+          messages: List.from(messages),
+          model: currentModel,
+        ));
       }
+    });
+
+    on<ChangeModelEvent>((event, emit) {
+      currentModel = event.newModel;
+      emit(ChatInitial(messages: List.from(messages), model: currentModel));
     });
   }
 }
